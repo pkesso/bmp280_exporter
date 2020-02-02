@@ -1,0 +1,16 @@
+[Unit]
+Description=Prometheus exporter for bmp280 air temperature and atmosphere pressure sensor
+Documentation=https://github.com/pkesso/bmp280_exporter
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+SyslogIdentifier=bmp280_exporter
+WorkingDirectory=/opt/bmp280_exporter
+ExecStart=/opt/bmp280_exporter/bin/python3 bmp280_exporter.py  
+KillSignal=SIGINT
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
