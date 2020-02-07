@@ -32,10 +32,6 @@ bmp280 = BMP280(i2c_dev=bus)
 pressure = Gauge('bmp280_pressure', 'Athomsperic pressure, ' + args.pressure_scale)
 temperature = Gauge('bmp280_temperature', 'Air temperature, ' + args.temperature_scale)
 
-def usage():
-    print('usage_message')
-    exit(0)
-
 @REQUEST_TIME.time()
 def get_data():
     temperature_raw=bmp280.get_temperature()
