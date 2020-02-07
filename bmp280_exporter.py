@@ -1,43 +1,36 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# TODO parse args: bus, verbose, hpa/mmhg, c/f/k, addr, port
-
+import argparse
 import time
 from bmp280 import BMP280
 from prometheus_client import start_http_server, Summary, Gauge
 
-temperature_scale='celsius'
-pressure_scale='mmhg'
-listen='0.0.0.0'
-port=8000
-smbus_bus=1
+parser = argparse.ArgumentParser(description="Prometheus exporter for BMP280 air temperature and pressure sensor")
 
-usage_message = """Prometheus exporter for BMP280 air temperature and pressure sensor
-           Homepage:
-           Options:
-           --temperature-scale=[celsius|farenheit|kelvin], default is celsius
-           --pressure-scale=[hpa|mmhg], default is hpa
-           --bus=<bus id>, default is 1
-           --refresh_interval=<seconds>, default is 1
-           --verbose
-           --listen=<ip>, default is 0.0.0.0
-           --port=<port>, default is 8000 #TODO"""
+parser.add_argument('--temperature_scale', action='store', default='celsius', help='[celsius|farenheit|kelvin], default: celsius')
+parser.add_argument('--pressure_scale', action='store', default='mmhg', help='[hpa|mmhg], default: mmhg')
+parser.add_argument('--listen', action='store', default='0.0.0.0', help='bind to address, default: 0.0.0.0')
+parser.add_argument('--port', action='store', type=int, default=8000, help='bind to port, default: 8000')
+parser.add_argument('--smbus_bus', action='store', type=int, default=1, help='smbus bus id, default: 1')
+parser.add_argument('--polling_interval', action='store', type=int, default=1, help='sensor polling interval, seconds, default: 1')
+# TODO verbose
+
+args = parser.parse_args()
+#print(args)
 
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
-
 
 try:
     from smbus2 import SMBus
 except ImportError:
     from smbus import SMBus
 
-
 # Initialise the BMP280
-bus = SMBus(smbus_bus)
+bus = SMBus(args.smbus_bus)
 bmp280 = BMP280(i2c_dev=bus)
 
-pressure = Gauge('bmp280_pressure', 'Athomsperic pressure, ' + pressure_scale)
-temperature = Gauge('bmp280_temperature', 'Air temperature, ' + temperature_scale)
+pressure = Gauge('bmp280_pressure', 'Athomsperic pressure, ' + args.pressure_scale)
+temperature = Gauge('bmp280_temperature', 'Air temperature, ' + args.temperature_scale)
 
 def usage():
     print('usage_message')
@@ -48,19 +41,19 @@ def get_data():
     temperature_raw=bmp280.get_temperature()
     pressure_raw=bmp280.get_pressure()
 
-    if temperature_scale=='celsius':
+    if args.temperature_scale=='celsius':
         temperature_processed=temperature_raw
-    elif pressure_scale=='kelvin':
+    elif args.temperature_scale=='kelvin':
         temperature_processed=temperature_raw+273.15
-    elif temperature_scale=='farenheit':
+    elif args.temperature_scale=='farenheit':
         temperature_processed= 9.0/5.0 * temperature_raw + 32
     else:
         print('ERROR: Wrong temperature_scale: only celsius|farenheit|kelvin supported')
         exit(1)
 
-    if pressure_scale=='hpa':
+    if args.pressure_scale=='hpa':
         pressure_processed=pressure_raw
-    elif pressure_scale=='mmhg':
+    elif args.pressure_scale=='mmhg':
         pressure_processed=pressure_raw * 0.7500616827
     else:
         print('ERROR: Wrong pressure_scale: only hpa|mmhg supported')
@@ -72,7 +65,7 @@ def get_data():
 #    print('{:05.2f}*C {:05.2f}hPa'.format(temperature, pressure))
 
 if __name__ == '__main__':
-    start_http_server(port)
+    start_http_server(args.port, args.listen)
     while True:
         get_data()
-        time.sleep(1)
+        time.sleep(args.polling_interval)
