@@ -1,5 +1,4 @@
 bmp280
 i2cdevice
-pkg-resources
 prometheus-client
 smbus

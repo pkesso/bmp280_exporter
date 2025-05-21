@@ -1,18 +1,42 @@
 #!/usr/bin/env python3
+'''prometheus exporter for BMP280 sensor'''
 
 import argparse
 import time
+from sys import exit as sys_exit
 from bmp280 import BMP280
 from prometheus_client import start_http_server, Summary, Gauge
 
-parser = argparse.ArgumentParser(description="Prometheus exporter for BMP280 air temperature and pressure sensor")
+parser = argparse.ArgumentParser(
+    description="Prometheus exporter for BMP280 air temperature and pressure sensor")
 
-parser.add_argument('--temperature_scale', action='store', default='celsius', help='[celsius|farenheit|kelvin], default: celsius')
-parser.add_argument('--pressure_scale', action='store', default='mmhg', help='[hpa|mmhg], default: mmhg')
-parser.add_argument('--listen', action='store', default='0.0.0.0', help='bind to address, default: 0.0.0.0')
-parser.add_argument('--port', action='store', type=int, default=8000, help='bind to port, default: 8000')
-parser.add_argument('--smbus_bus', action='store', type=int, default=1, help='smbus bus id, default: 1')
-parser.add_argument('--polling_interval', action='store', type=int, default=1, help='sensor polling interval, seconds, default: 1')
+parser.add_argument('--temperature_scale',
+                    action='store',
+                    default='celsius',
+                    help='[celsius|farenheit|kelvin], default: celsius')
+parser.add_argument('--pressure_scale',
+                    action='store',
+                    default='mmhg',
+                    help='[hpa|mmhg], default: mmhg')
+parser.add_argument('--listen',
+                    action='store',
+                    default='0.0.0.0',
+                    help='bind to address, default: 0.0.0.0')
+parser.add_argument('--port',
+                    action='store',
+                    type=int,
+                    default=8000,
+                    help='bind to port, default: 8000')
+parser.add_argument('--smbus_bus',
+                    action='store',
+                    type=int,
+                    default=1,
+                    help='smbus bus id, default: 1')
+parser.add_argument('--polling_interval',
+                    action='store',
+                    type=int,
+                    default=1,
+                    help='sensor polling interval, seconds, default: 1')
 # TODO verbose
 
 args = parser.parse_args()
@@ -34,6 +58,8 @@ temperature = Gauge('bmp280_temperature', 'Air temperature, ' + args.temperature
 
 @REQUEST_TIME.time()
 def get_data():
+    '''poll data from bmp280'''
+
     temperature_raw=bmp280.get_temperature()
     pressure_raw=bmp280.get_pressure()
 
@@ -45,7 +71,7 @@ def get_data():
         temperature_processed= 9.0/5.0 * temperature_raw + 32
     else:
         print('ERROR: Wrong temperature_scale: only celsius|farenheit|kelvin supported')
-        exit(1)
+        sys_exit(1)
 
     if args.pressure_scale=='hpa':
         pressure_processed=pressure_raw
@@ -53,7 +79,7 @@ def get_data():
         pressure_processed=pressure_raw * 0.7500616827
     else:
         print('ERROR: Wrong pressure_scale: only hpa|mmhg supported')
-        exit(1)
+        sys_exit(1)
 
 
     temperature.set(temperature_processed)
